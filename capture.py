@@ -10,10 +10,8 @@
 import sys
 import os
 import subprocess
+import time
 from PySide import QtCore, QtGui
-import os
-
-print os.name
 
 class Ui_MainWindow(object):
     
@@ -78,13 +76,16 @@ class Ui_MainWindow(object):
 	if os.name!="posix":
 	    os.chdir("C:\\gphoto2")
 
-        my_env = os.environ
-        my_env["CAMLIBS"] = "camlibs"
-        my_env["IOLIBS"] = "iolibs"
+        #my_env = os.environ
+        #my_env["CAMLIBS"] = "camlibs"
+        #my_env["IOLIBS"] = "iolibs"
         
         # get camera list
-        p = subprocess.Popen([('gphoto2.exe','gphoto2')[not os.name=="posix"], '--auto-detect'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=my_env)
         
+        commandString = ('gphoto2.exe','gphoto2')[not os.name=="posix"]
+        print(type(commandString))
+        #p = subprocess.Popen(['gphoto2', '--auto-detect'], stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=env)
+        p = subprocess.Popen(['gphoto2', '--auto-detect'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         print out
         
@@ -119,6 +120,7 @@ class ControlMainWindow(QtGui.QMainWindow):
     self.ui.setupUi(self)
    
 if __name__ == "__main__":
+    
     # QtGui.QApplication.setStyle(new QPlastiqueStyle);
     QtGui.QApplication.setStyle("plastique")
     app = QtGui.QApplication(sys.argv)
