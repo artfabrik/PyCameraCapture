@@ -7,16 +7,21 @@ import subprocess
 class Model(object):
 	def __init__(self):
 		self.cameras = []
+		if os.name!="posix":
+			os.chdir("C:\\gphoto2")
+			win_env = os.environ
+			win_env["CAMLIBS"] = "camlibs"
+			win_env["IOLIBS"] = "iolibs"
 	
 	def updateCameras(self):
 		cameras = []
-		if os.name!="posix":
-			os.chdir("C:\\gphoto2")
-		#my_env = os.environ
-		#my_env["CAMLIBS"] = "camlibs"
-		#my_env["IOLIBS"] = "iolibs"
+		
 		#p = subprocess.Popen(['gphoto2', '--auto-detect'], stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=env)
-		p = subprocess.Popen(['gphoto2', '--auto-detect'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		if os.name!="posix":
+			p = subprocess.Popen(['gphoto2', '--auto-detect'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		else:
+			p = subprocess.Popen(['gphoto2.exe', '--auto-detect'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		
 		out, err = p.communicate()
 		print out
 		cam_string = False
@@ -24,14 +29,36 @@ class Model(object):
  			print "test:", line.rstrip()
 			if cam_string:
 				print "THIS IS A CAM"
-				cameras.append(line.rstrip())
+				
+				camera = (
+					line.split("usb:")[0].rstrip(),
+					"usb:"+line.split("usb:")[1].rstrip()
+				)
+				
+				#print(camera);
+				
+				cameras.append(camera)
 			if line.rstrip() == '----------------------------------------------------------':
 				cam_string = True
 				print "NOW IT STARTS"
 		return cameras
+	
+	def captureAllCameraImages(self):
+		for camera in self.cameras:
+			print(camera)
+			self.captureCameraImage(camera[1])
 		
+	def captureCameraImage(self, port):
+		if os.name=="posix":
+			print("IS POSIX")
+			p = subprocess.Popen(['gphoto2', '--auto-detect'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		else:
+			p = subprocess.Popen(['gphoto2.exe', '--capture-image-and-download', '--port', port], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			print p.communicate()
+	
 	def getCameras(self):
 		self.cameras = self.updateCameras()
+		self.captureAllCameraImages()
 		return self.cameras
 
 class ControlMainWindow(QtGui.QMainWindow):
@@ -44,11 +71,15 @@ class ControlMainWindow(QtGui.QMainWindow):
         
 	def updateActiveCamTable(self):
 		cameras = self.model.getCameras()
-		tableModel = QtGui.QStandardItemModel(1, len(cameras), self.ui.tableView)
+		tableModel = QtGui.QStandardItemModel(2, len(cameras), self.ui.tableView)
 		for row, camera in enumerate(cameras):
-			item = QtGui.QStandardItem(camera)
-			item.setTextAlignment(QtCore.Qt.AlignCenter)
-			tableModel.setItem(row, 0, item)
+			itemName = QtGui.QStandardItem(camera[0])
+			itemName.setTextAlignment(QtCore.Qt.AlignCenter)
+			tableModel.setItem(row, 0, itemName)
+			
+			itemPort = QtGui.QStandardItem(camera[1])
+			itemPort.setTextAlignment(QtCore.Qt.AlignCenter)
+			tableModel.setItem(row, 1, itemPort)
 		self.ui.tableView.setModel(tableModel)
 	
 	def setupEvents(self):
